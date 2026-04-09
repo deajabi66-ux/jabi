@@ -106,6 +106,7 @@
     input[type="text"],
     input[type="date"],
     input[type="time"],
+    input[type="email"],
     input[type="tel"],
     textarea {
       width: 100%;
@@ -174,6 +175,12 @@
 
     .result-list li {
       margin-bottom: 6px;
+    }
+
+    .hint {
+      font-size: 0.86rem;
+      color: #4b5563;
+      margin-top: 6px;
     }
 
     @media (max-width: 760px) {
@@ -366,6 +373,27 @@
           </div>
         </div>
       </section>
+
+      <section>
+        <h2>8) 주간 알림 메일 설정</h2>
+        <div class="grid">
+          <div class="field"><label for="seekerManagerName">구직 담당자명</label><input id="seekerManagerName" name="seekerManagerName" type="text" /></div>
+          <div class="field"><label for="seekerManagerEmail">구직 담당자 이메일</label><input id="seekerManagerEmail" name="seekerManagerEmail" type="email" placeholder="example@domain.com" /></div>
+          <div class="field"><label for="employerManagerName">구인 담당자명</label><input id="employerManagerName" name="employerManagerName" type="text" /></div>
+          <div class="field"><label for="employerManagerEmail">구인 담당자 이메일</label><input id="employerManagerEmail" name="employerManagerEmail" type="email" placeholder="example@domain.com" /></div>
+          <div class="field"><label for="notifyEndDate">알림 종료일</label><input id="notifyEndDate" name="notifyEndDate" type="date" /></div>
+          <div class="field wide">
+            <label>알림 제어</label>
+            <div class="inline-actions">
+              <button type="button" id="startSeekerNotifyBtn">구직 담당자 알림 시작</button>
+              <button type="button" id="stopSeekerNotifyBtn">구직 담당자 알림 종료</button>
+              <button type="button" id="startEmployerNotifyBtn">구인 담당자 알림 시작</button>
+              <button type="button" id="stopEmployerNotifyBtn">구인 담당자 알림 종료</button>
+            </div>
+            <div id="notifyStatus" class="hint">매주 목요일 12:00(한국시간)에 각 담당자에게 주간 정보를 자동 발송합니다.</div>
+          </div>
+        </div>
+      </section>
     </form>
   </div>
   <script>
@@ -377,6 +405,11 @@
       const searchSeekersBtn = document.getElementById("searchSeekersBtn");
       const jobResults = document.getElementById("jobResults");
       const seekerResults = document.getElementById("seekerResults");
+      const startSeekerNotifyBtn = document.getElementById("startSeekerNotifyBtn");
+      const stopSeekerNotifyBtn = document.getElementById("stopSeekerNotifyBtn");
+      const startEmployerNotifyBtn = document.getElementById("startEmployerNotifyBtn");
+      const stopEmployerNotifyBtn = document.getElementById("stopEmployerNotifyBtn");
+      const notifyStatus = document.getElementById("notifyStatus");
 
       function collectFormData() {
         const data = {};
@@ -511,6 +544,86 @@
         return body;
       }
 
+      async function postJson(url, payload) {
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        const body = await response.json().catch(function () { return {}; });
+        if (!response.ok || !body.ok) {
+          throw new Error(body.message || "요청 처리 중 오류가 발생했습니다.");
+        }
+        return body;
+      }
+
+      function getDateValue(id) {
+        const value = getValue(id);
+        return value || "";
+      }
+
+      function getSeekerFilters() {
+        return {
+          wishJob: getValue("wishJob"),
+          wishArea: getValue("wishArea"),
+          wishPay: getValue("wishPay"),
+          wishTime: getValue("wishTime")
+        };
+      }
+
+      function getEmployerFilters() {
+        return {
+          jobTitle: getValue("jobTitle"),
+          workPlace: getValue("workPlace"),
+          payCond: getValue("payCond"),
+          needCareer: getValue("needCareer"),
+          needEdu: getValue("needEdu")
+        };
+      }
+
+      async function upsertWeeklySubscription(type) {
+        const endDate = getDateValue("notifyEndDate");
+        let name = "";
+        let email = "";
+        let filters = {};
+
+        if (type === "seeker") {
+          name = getValue("seekerManagerName");
+          email = getValue("seekerManagerEmail");
+          filters = getSeekerFilters();
+        } else {
+          name = getValue("employerManagerName");
+          email = getValue("employerManagerEmail");
+          filters = getEmployerFilters();
+        }
+
+        if (!email) {
+          throw new Error("담당자 이메일을 먼저 입력해 주세요.");
+        }
+
+        await postJson("/api/subscriptions", {
+          action: "upsert",
+          type: type,
+          name: name,
+          email: email,
+          endDate: endDate,
+          filters: filters
+        });
+      }
+
+      async function stopWeeklySubscription(type) {
+        const email = type === "seeker" ? getValue("seekerManagerEmail") : getValue("employerManagerEmail");
+        if (!email) {
+          throw new Error("종료할 담당자 이메일을 입력해 주세요.");
+        }
+        await postJson("/api/subscriptions", {
+          action: "stop",
+          type: type,
+          email: email
+        });
+      }
+
       async function showJobSearchFromSeeker() {
         const wishJob = getValue("wishJob");
         const wishArea = getValue("wishArea");
@@ -623,6 +736,42 @@
 
       searchJobsBtn.addEventListener("click", showJobSearchFromSeeker);
       searchSeekersBtn.addEventListener("click", showSeekerSearchFromEmployer);
+
+      startSeekerNotifyBtn.addEventListener("click", async function () {
+        try {
+          await upsertWeeklySubscription("seeker");
+          notifyStatus.textContent = "구직 담당자 주간 메일이 등록되었습니다. 매주 목요일 12:00(한국시간)에 발송됩니다.";
+        } catch (error) {
+          notifyStatus.textContent = "등록 실패: " + error.message;
+        }
+      });
+
+      startEmployerNotifyBtn.addEventListener("click", async function () {
+        try {
+          await upsertWeeklySubscription("employer");
+          notifyStatus.textContent = "구인 담당자 주간 메일이 등록되었습니다. 매주 목요일 12:00(한국시간)에 발송됩니다.";
+        } catch (error) {
+          notifyStatus.textContent = "등록 실패: " + error.message;
+        }
+      });
+
+      stopSeekerNotifyBtn.addEventListener("click", async function () {
+        try {
+          await stopWeeklySubscription("seeker");
+          notifyStatus.textContent = "구직 담당자 주간 메일을 종료했습니다.";
+        } catch (error) {
+          notifyStatus.textContent = "종료 실패: " + error.message;
+        }
+      });
+
+      stopEmployerNotifyBtn.addEventListener("click", async function () {
+        try {
+          await stopWeeklySubscription("employer");
+          notifyStatus.textContent = "구인 담당자 주간 메일을 종료했습니다.";
+        } catch (error) {
+          notifyStatus.textContent = "종료 실패: " + error.message;
+        }
+      });
     })();
   </script>
 </body>
