@@ -1,0 +1,398 @@
+﻿<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>고용24 연계 취업상담일지</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --card: #ffffff;
+      --ink: #1f2937;
+      --line: #d1d5db;
+      --accent: #0f766e;
+      --accent-soft: #e6fffa;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 24px;
+      font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+      color: var(--ink);
+      background: linear-gradient(180deg, #eef3fb 0%, #f9fbff 100%);
+    }
+
+    .wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: 1.5rem;
+    }
+
+    .sub {
+      margin: 0 0 14px;
+      color: #4b5563;
+      font-size: 0.95rem;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      background: #fff;
+    }
+
+    button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    section {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 12px;
+      margin: 14px 0;
+      background: #fff;
+    }
+
+    h2 {
+      margin: 0 0 10px;
+      font-size: 1.05rem;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: var(--accent-soft);
+      color: #0b4f49;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .field.wide { grid-column: 1 / -1; }
+
+    label {
+      font-size: 0.88rem;
+      font-weight: 600;
+    }
+
+    input[type="text"],
+    input[type="date"],
+    input[type="time"],
+    input[type="tel"],
+    textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px;
+      font-size: 0.95rem;
+      background: #fff;
+    }
+
+    textarea {
+      min-height: 90px;
+      resize: vertical;
+      line-height: 1.5;
+    }
+
+    .checks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px;
+      min-height: 42px;
+      align-items: center;
+    }
+
+    .checks label {
+      font-weight: 500;
+      font-size: 0.92rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    @media (max-width: 760px) {
+      body { padding: 12px; }
+      .wrap { padding: 14px; }
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    @media print {
+      body { background: #fff; padding: 0; }
+      .wrap { border: 0; box-shadow: none; max-width: 100%; padding: 0; }
+      .actions { display: none; }
+      section { break-inside: avoid; }
+      input, textarea { border: 1px solid #999; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>고용24 연계 취업상담일지</h1>
+    <p class="sub">구직자/구인처가 직접 입력하고 체크할 수 있는 양식입니다.</p>
+
+    <div class="actions">
+      <button class="primary" type="button" onclick="window.print()">인쇄 / PDF 저장</button>
+      <button type="reset" form="counselForm">입력 초기화</button>
+      <button type="button" id="clearSavedData">자동저장 삭제</button>
+    </div>
+
+    <form id="counselForm">
+      <section>
+        <h2>1) 상담 기본정보</h2>
+        <div class="grid">
+          <div class="field"><label for="date">상담일자</label><input id="date" name="date" type="date" /></div>
+          <div class="field"><label for="time">상담시간</label><input id="time" name="time" type="text" placeholder="예: 14:00~14:50" /></div>
+          <div class="field wide">
+            <label>상담방법</label>
+            <div class="checks">
+              <label><input type="checkbox" name="method" value="대면" /> 대면</label>
+              <label><input type="checkbox" name="method" value="전화" /> 전화</label>
+              <label><input type="checkbox" name="method" value="온라인" /> 온라인</label>
+            </div>
+          </div>
+          <div class="field wide">
+            <label>상담구분</label>
+            <div class="checks">
+              <label><input type="checkbox" name="type" value="구직" /> 구직</label>
+              <label><input type="checkbox" name="type" value="구인" /> 구인</label>
+              <label><input type="checkbox" name="type" value="매칭" /> 매칭</label>
+            </div>
+          </div>
+          <div class="field"><label for="advisor">담당상담사</label><input id="advisor" name="advisor" type="text" /></div>
+          <div class="field"><label for="center">기관/센터</label><input id="center" name="center" type="text" /></div>
+          <div class="field wide"><label for="baseMemo">상담자 현장 메모</label><textarea id="baseMemo" name="baseMemo"></textarea></div>
+        </div>
+      </section>
+
+      <section>
+        <h2>2) 구직자 정보 (구직표)</h2>
+        <div class="grid">
+          <div class="field"><label for="seekerName">성명</label><input id="seekerName" name="seekerName" type="text" /></div>
+          <div class="field"><label for="seekerBirth">생년월일</label><input id="seekerBirth" name="seekerBirth" type="text" /></div>
+          <div class="field"><label for="seekerPhone">연락처</label><input id="seekerPhone" name="seekerPhone" type="tel" /></div>
+          <div class="field"><label for="seekerArea">거주지역</label><input id="seekerArea" name="seekerArea" type="text" /></div>
+          <div class="field wide"><label for="seekerEdu">학력</label><input id="seekerEdu" name="seekerEdu" type="text" /></div>
+          <div class="field wide"><label for="seekerCareer">경력(주요직무)</label><textarea id="seekerCareer" name="seekerCareer"></textarea></div>
+          <div class="field wide"><label for="seekerCert">자격/면허</label><input id="seekerCert" name="seekerCert" type="text" /></div>
+          <div class="field wide"><label for="wishJob">희망직종(1~3순위)</label><input id="wishJob" name="wishJob" type="text" /></div>
+          <div class="field"><label for="wishArea">희망근무지역</label><input id="wishArea" name="wishArea" type="text" /></div>
+          <div class="field"><label for="wishPay">희망임금</label><input id="wishPay" name="wishPay" type="text" /></div>
+          <div class="field wide">
+            <label>희망고용형태</label>
+            <div class="checks">
+              <label><input type="checkbox" name="workType" value="정규" /> 정규</label>
+              <label><input type="checkbox" name="workType" value="계약" /> 계약</label>
+              <label><input type="checkbox" name="workType" value="시간제" /> 시간제</label>
+              <label><input type="checkbox" name="workType" value="기타" /> 기타</label>
+            </div>
+          </div>
+          <div class="field"><label for="wishTime">희망근무시간</label><input id="wishTime" name="wishTime" type="text" /></div>
+          <div class="field"><label for="seekerSupport">취업애로/지원필요</label><input id="seekerSupport" name="seekerSupport" type="text" /></div>
+          <div class="field wide"><label for="seekerMemo">상담자 메모(구직)</label><textarea id="seekerMemo" name="seekerMemo"></textarea></div>
+        </div>
+      </section>
+
+      <section>
+        <h2>3) 구인처 정보 (구인표)</h2>
+        <div class="grid">
+          <div class="field"><label for="companyName">사업장명</label><input id="companyName" name="companyName" type="text" /></div>
+          <div class="field"><label for="bizNo">사업자등록번호</label><input id="bizNo" name="bizNo" type="text" /></div>
+          <div class="field"><label for="manager">담당자명</label><input id="manager" name="manager" type="text" /></div>
+          <div class="field"><label for="companyPhone">연락처</label><input id="companyPhone" name="companyPhone" type="tel" /></div>
+          <div class="field"><label for="jobTitle">모집직종</label><input id="jobTitle" name="jobTitle" type="text" /></div>
+          <div class="field"><label for="headcount">모집인원</label><input id="headcount" name="headcount" type="text" /></div>
+          <div class="field wide"><label for="jobDesc">직무내용</label><textarea id="jobDesc" name="jobDesc"></textarea></div>
+          <div class="field"><label for="needCareer">경력요건</label><input id="needCareer" name="needCareer" type="text" /></div>
+          <div class="field"><label for="needEdu">학력요건</label><input id="needEdu" name="needEdu" type="text" /></div>
+          <div class="field"><label for="needCert">자격요건</label><input id="needCert" name="needCert" type="text" /></div>
+          <div class="field"><label for="payCond">임금조건</label><input id="payCond" name="payCond" type="text" /></div>
+          <div class="field"><label for="workCond">근무형태/근무시간</label><input id="workCond" name="workCond" type="text" /></div>
+          <div class="field"><label for="workPlace">근무예정지</label><input id="workPlace" name="workPlace" type="text" /></div>
+          <div class="field"><label for="welfare">복리후생/우대사항</label><input id="welfare" name="welfare" type="text" /></div>
+          <div class="field wide">
+            <label>채용상태</label>
+            <div class="checks">
+              <label><input type="checkbox" name="hireState" value="접수" /> 접수</label>
+              <label><input type="checkbox" name="hireState" value="승인대기" /> 승인대기</label>
+              <label><input type="checkbox" name="hireState" value="진행중" /> 진행중</label>
+              <label><input type="checkbox" name="hireState" value="마감" /> 마감</label>
+            </div>
+          </div>
+          <div class="field wide"><label for="companyMemo">상담자 메모(구인)</label><textarea id="companyMemo" name="companyMemo"></textarea></div>
+        </div>
+      </section>
+
+      <section>
+        <h2>4) 매칭/알선 기록</h2>
+        <div class="grid">
+          <div class="field wide"><label for="matchRule">매칭기준(직종·임금·지역·경력)</label><textarea id="matchRule" name="matchRule"></textarea></div>
+          <div class="field wide"><label for="matchInfo">추천 구인/구직 정보</label><textarea id="matchInfo" name="matchInfo"></textarea></div>
+          <div class="field wide"><label for="matchAction">알선·입사지원·면접연계 내용</label><textarea id="matchAction" name="matchAction"></textarea></div>
+          <div class="field wide"><label for="matchRisk">조건불일치/리스크</label><textarea id="matchRisk" name="matchRisk"></textarea></div>
+          <div class="field wide"><label for="matchMemo">상담자 메모(매칭 판단기록)</label><textarea id="matchMemo" name="matchMemo"></textarea></div>
+        </div>
+      </section>
+
+      <section>
+        <h2>5) 상담결과/사후관리</h2>
+        <div class="grid">
+          <div class="field wide">
+            <label>처리결과</label>
+            <div class="checks">
+              <label><input type="checkbox" name="result" value="구직등록" /> 구직등록</label>
+              <label><input type="checkbox" name="result" value="구인등록" /> 구인등록</label>
+              <label><input type="checkbox" name="result" value="알선" /> 알선</label>
+              <label><input type="checkbox" name="result" value="면접연계" /> 면접연계</label>
+              <label><input type="checkbox" name="result" value="보류" /> 보류</label>
+            </div>
+          </div>
+          <div class="field"><label for="noticeDate">결과통보 예정일</label><input id="noticeDate" name="noticeDate" type="date" /></div>
+          <div class="field"><label for="nextDate">다음 상담일</label><input id="nextDate" name="nextDate" type="date" /></div>
+          <div class="field wide"><label for="reason">미취업/미채용 사유</label><textarea id="reason" name="reason"></textarea></div>
+          <div class="field wide"><label for="followUp">사후계획(재알선·조건조정·훈련연계)</label><textarea id="followUp" name="followUp"></textarea></div>
+          <div class="field wide"><label for="resultMemo">상담자 종합 메모</label><textarea id="resultMemo" name="resultMemo"></textarea></div>
+        </div>
+      </section>
+
+      <section>
+        <h2>6) 유효기간/확인</h2>
+        <div class="grid">
+          <div class="field"><label for="seekerExpire">구직 만료예정일(3개월)</label><input id="seekerExpire" name="seekerExpire" type="date" /></div>
+          <div class="field"><label for="companyExpire">구인 만료예정일(2개월)</label><input id="companyExpire" name="companyExpire" type="date" /></div>
+          <div class="field wide">
+            <label>만료 전 안내</label>
+            <div class="checks">
+              <label><input type="checkbox" name="alert" value="문자" /> 문자</label>
+              <label><input type="checkbox" name="alert" value="전화" /> 전화</label>
+              <label><input type="checkbox" name="alert" value="이메일" /> 이메일</label>
+            </div>
+          </div>
+          <div class="field wide">
+            <label>개인정보·정보제공 동의</label>
+            <div class="checks">
+              <label><input type="checkbox" name="agree" value="동의" /> 동의</label>
+              <label><input type="checkbox" name="agree" value="미동의" /> 미동의</label>
+            </div>
+          </div>
+          <div class="field wide"><label for="etc">특이사항</label><textarea id="etc" name="etc"></textarea></div>
+          <div class="field"><label for="clientSign">내담자 서명(성명 입력)</label><input id="clientSign" name="clientSign" type="text" /></div>
+          <div class="field"><label for="advisorSign">상담사 서명(성명 입력)</label><input id="advisorSign" name="advisorSign" type="text" /></div>
+        </div>
+      </section>
+    </form>
+  </div>
+  <script>
+    (function () {
+      const STORAGE_KEY = "employment-counsel-form-v1";
+      const form = document.getElementById("counselForm");
+      const clearSavedDataBtn = document.getElementById("clearSavedData");
+
+      function collectFormData() {
+        const data = {};
+        const elements = form.querySelectorAll("input, textarea, select");
+        elements.forEach((el) => {
+          if (!el.name) return;
+          if (el.type === "checkbox") {
+            if (!Array.isArray(data[el.name])) data[el.name] = [];
+            if (el.checked) data[el.name].push(el.value);
+            return;
+          }
+          data[el.name] = el.value;
+        });
+        return data;
+      }
+
+      function applyFormData(data) {
+        const elements = form.querySelectorAll("input, textarea, select");
+        elements.forEach((el) => {
+          if (!el.name || !(el.name in data)) return;
+          if (el.type === "checkbox") {
+            const values = Array.isArray(data[el.name]) ? data[el.name] : [];
+            el.checked = values.includes(el.value);
+            return;
+          }
+          el.value = data[el.name];
+        });
+      }
+
+      function saveFormData() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(collectFormData()));
+        } catch (e) {
+          // Ignore storage errors (private mode/quota)
+        }
+      }
+
+      function loadFormData() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return;
+          const parsed = JSON.parse(raw);
+          applyFormData(parsed);
+        } catch (e) {
+          // Ignore invalid data
+        }
+      }
+
+      function clearSavedData(withAlert) {
+        try {
+          localStorage.removeItem(STORAGE_KEY);
+        } catch (e) {
+          // Ignore storage errors
+        }
+        if (withAlert) {
+          alert("자동 저장된 입력 내용을 삭제했습니다.");
+        }
+      }
+
+      loadFormData();
+
+      form.addEventListener("input", saveFormData);
+      form.addEventListener("change", saveFormData);
+      form.addEventListener("reset", function () {
+        // reset is applied after the event loop tick
+        setTimeout(function () {
+          clearSavedData(false);
+        }, 0);
+      });
+
+      clearSavedDataBtn.addEventListener("click", function () {
+        const ok = confirm("자동 저장된 내용을 삭제할까요?");
+        if (!ok) return;
+        clearSavedData(true);
+      });
+    })();
+  </script>
+</body>
+</html>
