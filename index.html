@@ -141,6 +141,41 @@
       gap: 6px;
     }
 
+    .inline-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 6px;
+    }
+
+    .result-box {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      background: #f9fbff;
+      min-height: 72px;
+      line-height: 1.5;
+      white-space: pre-line;
+    }
+
+    .result-box a {
+      color: #0b5fc4;
+      text-decoration: none;
+    }
+
+    .result-box a:hover {
+      text-decoration: underline;
+    }
+
+    .result-list {
+      margin: 8px 0 0;
+      padding-left: 18px;
+    }
+
+    .result-list li {
+      margin-bottom: 6px;
+    }
+
     @media (max-width: 760px) {
       body { padding: 12px; }
       .wrap { padding: 14px; }
@@ -310,6 +345,27 @@
           <div class="field"><label for="advisorSign">상담사 서명(성명 입력)</label><input id="advisorSign" name="advisorSign" type="text" /></div>
         </div>
       </section>
+
+      <section>
+        <h2>7) 고용24 연계 조회</h2>
+        <div class="grid">
+          <div class="field wide">
+            <label>구직신청 동시 조회 (고용24 구인목록)</label>
+            <div class="inline-actions">
+              <button type="button" id="searchJobsBtn">구인목록 조회</button>
+            </div>
+            <div id="jobResults" class="result-box">구직신청(또는 구직등록 체크) 시 고용24 구인검색 링크와 조회 기준이 표시됩니다.</div>
+          </div>
+
+          <div class="field wide">
+            <label>구인신청 동시 조회 (고용24 구직자목록)</label>
+            <div class="inline-actions">
+              <button type="button" id="searchSeekersBtn">구직자목록 조회</button>
+            </div>
+            <div id="seekerResults" class="result-box">구인신청(또는 구인등록 체크) 시 고용24 구직자검색 링크와 조회 기준이 표시됩니다.</div>
+          </div>
+        </div>
+      </section>
     </form>
   </div>
   <script>
@@ -317,6 +373,10 @@
       const STORAGE_KEY = "employment-counsel-form-v1";
       const form = document.getElementById("counselForm");
       const clearSavedDataBtn = document.getElementById("clearSavedData");
+      const searchJobsBtn = document.getElementById("searchJobsBtn");
+      const searchSeekersBtn = document.getElementById("searchSeekersBtn");
+      const jobResults = document.getElementById("jobResults");
+      const seekerResults = document.getElementById("seekerResults");
 
       function collectFormData() {
         const data = {};
@@ -376,14 +436,182 @@
         }
       }
 
+      function getValue(id) {
+        const el = document.getElementById(id);
+        return el ? el.value.trim() : "";
+      }
+
+      function getCheckedValues(name) {
+        return Array.from(form.querySelectorAll('input[type="checkbox"][name="' + name + '"]:checked')).map(function (el) {
+          return el.value;
+        });
+      }
+
+      function escapeHtml(text) {
+        return String(text)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function buildPortalSearchLink(keyword) {
+        const q = encodeURIComponent(keyword || "고용24 채용정보");
+        return "https://www.work24.go.kr/cm/main.do#search=" + q;
+      }
+
+      function renderStatus(box, message) {
+        box.textContent = message;
+      }
+
+      function renderResultSummary(title, lines, keyword, linkLabel) {
+        const safeLines = lines.length ? lines.map(function (line) { return "<li>" + escapeHtml(line) + "</li>"; }).join("") : "<li>입력된 조건이 없어 기본 검색으로 연결됩니다.</li>";
+        const href = buildPortalSearchLink(keyword);
+        return (
+          "<strong>" + escapeHtml(title) + "</strong>" +
+          '<ul class="result-list">' + safeLines + "</ul>" +
+          '<a href="' + href + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(linkLabel) + "</a>"
+        );
+      }
+
+      function renderApiItems(items) {
+        if (!items || !items.length) {
+          return "<p>조건에 맞는 결과가 없거나, 조회 가능한 데이터가 없습니다.</p>";
+        }
+
+        const rows = items.map(function (item) {
+          const title = escapeHtml(item.title || "제목 없음");
+          const meta = escapeHtml(item.meta || "");
+          if (item.link) {
+            return '<li><a href="' + escapeHtml(item.link) + '" target="_blank" rel="noopener noreferrer">' + title + "</a>" + (meta ? " - " + meta : "") + "</li>";
+          }
+          return "<li>" + title + (meta ? " - " + meta : "") + "</li>";
+        }).join("");
+
+        return '<ul class="result-list">' + rows + "</ul>";
+      }
+
+      async function fetchWork24(mode, params) {
+        const query = new URLSearchParams({ mode: mode });
+        Object.keys(params).forEach(function (key) {
+          const value = params[key];
+          if (value) query.set(key, value);
+        });
+
+        const response = await fetch("/api/work24?" + query.toString(), {
+          method: "GET",
+          headers: { "Accept": "application/json" }
+        });
+
+        const body = await response.json().catch(function () { return {}; });
+        if (!response.ok || !body.ok) {
+          throw new Error(body.message || "고용24 조회 중 오류가 발생했습니다.");
+        }
+        return body;
+      }
+
+      async function showJobSearchFromSeeker() {
+        const wishJob = getValue("wishJob");
+        const wishArea = getValue("wishArea");
+        const wishPay = getValue("wishPay");
+        const wishTime = getValue("wishTime");
+        const workType = getCheckedValues("workType").join(", ");
+
+        const lines = [];
+        if (wishJob) lines.push("희망직종: " + wishJob);
+        if (wishArea) lines.push("희망근무지역: " + wishArea);
+        if (wishPay) lines.push("희망임금: " + wishPay);
+        if (wishTime) lines.push("희망근무시간: " + wishTime);
+        if (workType) lines.push("희망고용형태: " + workType);
+
+        const keyword = [wishJob, wishArea, wishPay].filter(Boolean).join(" ");
+        renderStatus(jobResults, "고용24 구인목록을 조회 중입니다...");
+        try {
+          const data = await fetchWork24("jobs", {
+            keyword: keyword,
+            wishJob: wishJob,
+            wishArea: wishArea
+          });
+
+          jobResults.innerHTML =
+            renderResultSummary("구직신청 기준으로 고용24 구인목록 검색", lines, keyword, "고용24 통합검색 열기") +
+            renderApiItems(data.items);
+        } catch (error) {
+          jobResults.innerHTML = renderResultSummary(
+            "구직신청 기준으로 고용24 구인목록 검색",
+            lines,
+            keyword,
+            "고용24 통합검색 열기"
+          ) + "<p>API 조회 실패: " + escapeHtml(error.message) + "</p>";
+        }
+      }
+
+      async function showSeekerSearchFromEmployer() {
+        const jobTitle = getValue("jobTitle");
+        const workPlace = getValue("workPlace");
+        const payCond = getValue("payCond");
+        const needCareer = getValue("needCareer");
+        const needEdu = getValue("needEdu");
+
+        const lines = [];
+        if (jobTitle) lines.push("모집직종: " + jobTitle);
+        if (workPlace) lines.push("근무예정지: " + workPlace);
+        if (payCond) lines.push("임금조건: " + payCond);
+        if (needCareer) lines.push("경력요건: " + needCareer);
+        if (needEdu) lines.push("학력요건: " + needEdu);
+
+        const keyword = [jobTitle, workPlace, payCond].filter(Boolean).join(" ");
+        renderStatus(seekerResults, "고용24 구직자목록을 조회 중입니다...");
+        try {
+          const data = await fetchWork24("seekers", {
+            keyword: keyword,
+            jobTitle: jobTitle,
+            workPlace: workPlace
+          });
+
+          seekerResults.innerHTML =
+            renderResultSummary("구인신청 기준으로 고용24 구직자목록 검색", lines, keyword, "고용24 통합검색 열기") +
+            renderApiItems(data.items);
+        } catch (error) {
+          seekerResults.innerHTML = renderResultSummary(
+            "구인신청 기준으로 고용24 구직자목록 검색",
+            lines,
+            keyword,
+            "고용24 통합검색 열기"
+          ) + "<p>API 조회 실패: " + escapeHtml(error.message) + "</p>";
+        }
+      }
+
+      function maybeAutoSearchByResult() {
+        const resultValues = getCheckedValues("result");
+        const typeValues = getCheckedValues("type");
+
+        if (resultValues.includes("구직등록") || typeValues.includes("구직")) {
+          showJobSearchFromSeeker();
+        }
+        if (resultValues.includes("구인등록") || typeValues.includes("구인")) {
+          showSeekerSearchFromEmployer();
+        }
+      }
+
       loadFormData();
+      maybeAutoSearchByResult();
 
       form.addEventListener("input", saveFormData);
-      form.addEventListener("change", saveFormData);
+      form.addEventListener("change", function (event) {
+        saveFormData();
+
+        if (event.target && (event.target.name === "result" || event.target.name === "type")) {
+          maybeAutoSearchByResult();
+        }
+      });
       form.addEventListener("reset", function () {
         // reset is applied after the event loop tick
         setTimeout(function () {
           clearSavedData(false);
+          jobResults.textContent = "구직신청(또는 구직등록 체크) 시 고용24 구인검색 링크와 조회 기준이 표시됩니다.";
+          seekerResults.textContent = "구인신청(또는 구인등록 체크) 시 고용24 구직자검색 링크와 조회 기준이 표시됩니다.";
         }, 0);
       });
 
@@ -392,6 +620,9 @@
         if (!ok) return;
         clearSavedData(true);
       });
+
+      searchJobsBtn.addEventListener("click", showJobSearchFromSeeker);
+      searchSeekersBtn.addEventListener("click", showSeekerSearchFromEmployer);
     })();
   </script>
 </body>
